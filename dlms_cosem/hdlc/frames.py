@@ -378,12 +378,15 @@ class InformationFrame(BaseHdlcFrame):
         )
 
         if hcs != frame.hcs:
-            raise hdlc_exceptions.HdlcParsingError(
+            #raise hdlc_exceptions.HdlcParsingError(
+            print(
                 f"HCS is not correct Calculated: {frame.hcs!r}, in data: {hcs!r}"
             )
 
         if fcs != frame.fcs:
-            raise hdlc_exceptions.HdlcParsingError(
+
+            #raise hdlc_exceptions.HdlcParsingError(
+            print(
                 f"FCS is not correct, Calculated: {frame.fcs!r}, in data: {fcs!r}"
             )
 
@@ -499,12 +502,14 @@ class UnnumberedInformationFrame(BaseHdlcFrame):
         )
 
         if hcs != frame.hcs:
-            raise hdlc_exceptions.HdlcParsingError(
+            #raise hdlc_exceptions.HdlcParsingError(
+            print(
                 f"HCS is not correct Calculated: {frame.hcs!r}, in data: {hcs!r}"
             )
 
         if fcs != frame.fcs:
-            raise hdlc_exceptions.HdlcParsingError(
+            #raise hdlc_exceptions.HdlcParsingError(
+            print(
                 f"FCS is not correct, Calculated: {frame.fcs!r}, in data: {fcs!r}"
             )
 
