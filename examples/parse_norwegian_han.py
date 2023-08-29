@@ -1,6 +1,6 @@
 import pprint
 import sys
-sys.path.append(r'C:\Dev\dlms-cosem')
+sys.path.append(r'C:\Lab\dlms-cosem')
 from dlms_cosem.cosem import Obis
 from dlms_cosem.hdlc import frames
 from dlms_cosem.protocol import xdlms
@@ -51,7 +51,8 @@ obisStr=""
 # rest is data
 for item in result:
     try:
-        if(obisStr.count>0):
+        if(len(obisStr)>0):
+            print(obisStr)
             if(obisStr=="0-0:1.0.0.255"):
                 frameDate=datetime_from_bytes()
         obis = Obis.from_bytes(item)
