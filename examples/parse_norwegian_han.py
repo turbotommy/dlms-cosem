@@ -54,7 +54,7 @@ for item in result:
         if(len(obisStr)>0):
             print(obisStr)
             if(obisStr=="0-0:1.0.0.255"):
-                frameDate=datetime_from_bytes()
+                clock,status=datetime_from_bytes(item)
             elif(obisStr=="1-0:1.7.0.255"):
                 print("Active power+")
             elif(obisStr=="1-0:2.7.0.255"):
