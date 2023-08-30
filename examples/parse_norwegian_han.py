@@ -55,6 +55,21 @@ for item in result:
             print(obisStr)
             if(obisStr=="0-0:1.0.0.255"):
                 frameDate=datetime_from_bytes()
+            elif(obisStr=="1-0:1.7.0.255"):
+                print("Active power+")
+            elif(obisStr=="1-0:2.7.0.255"):
+                print("Active power-")
+            elif(obisStr=="1-0:3.7.0.255"):
+                print("ReActive power+")
+            elif(obisStr=="1-0:4.7.0.255"):
+                print("ReActive power-")
+            elif(obisStr=="1-0:31.7.0.255"):
+                print("Ström L1")
+            elif(obisStr=="1-0:51.7.0.255"):
+                print("Ström L2")
+            elif(obisStr=="1-0:71.7.0.255"):
+                print("Ström L3")
+        obisStr=''        
         obis = Obis.from_bytes(item)
         obisStr=obis.to_string()
     except Exception:
