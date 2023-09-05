@@ -1,7 +1,7 @@
 import pprint
 import paho.mqtt.client as paho
 import sys
-sys.path.append(r'C:\Lab\dlms-cosem')
+sys.path.append(r'C:\Dev\dlms-cosem')
 from dlms_cosem.cosem import Obis
 from dlms_cosem.hdlc import frames
 from dlms_cosem.protocol import xdlms
