@@ -1,7 +1,7 @@
 import pprint
 import paho.mqtt.client as paho
 import sys
-sys.path.append(r'C:\Dev\dlms-cosem')
+sys.path.append(r'C:\Lab\dlms-cosem')
 from queue import Queue
 from dlms_cosem.cosem import Obis
 from dlms_cosem.hdlc import frames
@@ -41,23 +41,22 @@ mqttCurrent=mqttPower.replace("Power","Current")
 mqttVoltage=mqttPower.replace("Power","Voltage")
 mqttEnergy=mqttPrefix+"Energy/"
 
-
-prevPayload=""
+prevPayload=b''
 #clock,Reastatus = datetime_from_bytes(b"570656732659")
 #clock, status = datetime_from_bytes(b"570656732659")
 q = Queue()
 #crc=frames.CRCCCITT()
 #tst=crc.calculate_for(bytes.fromhex(    "a11f010001f693aee6e700"))
 def handle_msg(client, userdata, msg):
+    global prevPayload
     print(bytes.hex(msg.payload))
-    
-    msglen=int.from_bytes(msg.payload[1:3])-40960
-    lenDiff=msglen-len(msg.payload)
-    bArray=bytearray(msg.payload)
+    payload=prevPayload+msg.payload
+    msglen=int.from_bytes(payload[1:3],"big")-40960
+    lenDiff=msglen-len(payload)
     parse=False
     if(lenDiff==-1):
         #1 char diff means we only need to add a flag
-        bArray+=b'\x7e'
+        payload+=b'\x7e'
         parse=True
     elif(lenDiff==1):
         #Do not add flag, try to parse
@@ -65,13 +64,16 @@ def handle_msg(client, userdata, msg):
         parse=True
     elif(lenDiff>10):
         #Wait for next mqtt msg
-        prevPayload=msg.payload
+        prevPayload=payload
     else:
+        #-2
+        #7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff06000002c309060100020700ff060000000009060100030700ff060000000009060100040700ff06000000d5090601001f0700ff060000087e09
+        #060100330700ff060000036709060100470700ff06000002a909060100200700ff06000008f509060100340700ff06000008fe09060100480700ff060000090f09060000010000ff090c07e709060316381effffc40009060100010800ff06010a835109060100020800ff060000000009060100030800ff060000174e09060100040800ff06003cdc184b257e
         print(msglen)
     
     if(parse):
-        prevPayload=""
-        ui = frames.UnnumberedInformationFrame.from_bytes(bArray)
+        prevPayload=b''
+        ui = frames.UnnumberedInformationFrame.from_bytes(payload)
         dn = xdlms.DataNotification.from_bytes(
             ui.payload[4:]
         )  # The first 3 bytes should be ignored. Even 4 for KAIFA
