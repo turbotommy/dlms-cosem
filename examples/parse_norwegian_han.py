@@ -36,24 +36,49 @@ hdlc_data_hex3 = (
 mqttPrefix = "misteln13power/KAIFA/"
 mqttPower=mqttPrefix+"Power/Instant/"
 mqttActive=mqttPower+"Active/"
+mqttReactive=mqttPower+"Reactive/"
+mqttCurrent=mqttPower.replace("Power","Current")
+mqttVoltage=mqttPower.replace("Power","Voltage")
+mqttEnergy=mqttPrefix+"Energy/"
 
+
+prevPayload=""
+#clock,Reastatus = datetime_from_bytes(b"570656732659")
 #clock, status = datetime_from_bytes(b"570656732659")
 q = Queue()
 #crc=frames.CRCCCITT()
 #tst=crc.calculate_for(bytes.fromhex(    "a11f010001f693aee6e700"))
 def handle_msg(client, userdata, msg):
     print(bytes.hex(msg.payload))
-
+    
+    msglen=int.from_bytes(msg.payload[1:3])-40960
+    lenDiff=msglen-len(msg.payload)
     bArray=bytearray(msg.payload)
-    bArray+=b'\x7e'
-    ui = frames.UnnumberedInformationFrame.from_bytes(bArray)
-    dn = xdlms.DataNotification.from_bytes(
-        ui.payload[4:]
-    )  # The first 3 bytes should be ignored. Even 4 for KAIFA
+    parse=False
+    if(lenDiff==-1):
+        #1 char diff means we only need to add a flag
+        bArray+=b'\x7e'
+        parse=True
+    elif(lenDiff==1):
+        #Do not add flag, try to parse
+        #7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff060000009709060100020700ff060000000009060100030700ff060000000009060100040700ff06000000bf090601001f0700ff060000014f09060100330700ff06000001da09060100470700ff060000026f09060100200700ff06000008f009060100340700ff06000008fb09060100480700ff060000090309060000010000ff090c07e70906030f060fffffc40009060100010800ff06010a704709060100020800ff060000000009060100030800ff060000174d09060100040800ff06003cd47e
+        parse=True
+    elif(lenDiff>10):
+        #Wait for next mqtt msg
+        prevPayload=msg.payload
+    else:
+        print(msglen)
+    
+    if(parse):
+        prevPayload=""
+        ui = frames.UnnumberedInformationFrame.from_bytes(bArray)
+        dn = xdlms.DataNotification.from_bytes(
+            ui.payload[4:]
+        )  # The first 3 bytes should be ignored. Even 4 for KAIFA
 
-    result = parse_as_dlms_data(dn.body)
-    q.put(result)
-    pubret=client.publish("bas/active","item3")
+        result = parse_as_dlms_data(dn.body)
+        q.put(result)
+
 #    time.sleep(1)
     
 #    for b in msg.payload:
@@ -61,7 +86,7 @@ def handle_msg(client, userdata, msg):
 
 client=paho.Client()
 client.username_pw_set("appuser", "appuser")
-if client.connect("misteln13",1883,) != 0:
+if client.connect("192.168.222.20",1883,) != 0:
     print("Not able to connect to broker")
     sys.exit(1)
 client.on_message=handle_msg
@@ -82,39 +107,83 @@ try:
         for item in result:
             try:
                 if(len(obisStr)>0):
-                    print(obisStr)
+                    print(obisStr, end=", ")
                     if(obisStr=="0-0:1.0.0.255"):
                         clock,status=datetime_from_bytes(item)
-                        print(clock.isoformat)
+                        strClock=clock.strftime("%Y-%m-%d %X")
+                        print(strClock)
+                        pubret=client.publish(mqttPrefix+"Time/value",strClock)
                     elif(obisStr=="1-0:1.7.0.255"):
                         print("Active power+")
                         pubret=client.publish(mqttActive+"Positive/value",item)
-                        pubret=client.publish(mqttActive+"Positive/unit","kW")
+                        pubret=client.publish(mqttActive+"Positive/unit","W")
                     elif(obisStr=="1-0:2.7.0.255"):
                         print("Active power-")
+                        pubret=client.publish(mqttActive+"Negative/value",item)
+                        pubret=client.publish(mqttActive+"Negative/unit","W")
                     elif(obisStr=="1-0:3.7.0.255"):
                         print("ReActive power+")
+                        pubret=client.publish(mqttReactive+"Positive/value",item)
+                        pubret=client.publish(mqttReactive+"Positive/unit","W")
                     elif(obisStr=="1-0:4.7.0.255"):
                         print("ReActive power-")
+                        pubret=client.publish(mqttReactive+"Negative/value",item)
+                        pubret=client.publish(mqttReactive+"Negative/unit","W")
                     elif(obisStr=="1-0:31.7.0.255"):
-                        print("Ström L1: {0}".format(item/100))
+                        current=item/100
+                        print("Ström L1: {0} A".format(current))
+                        pubret=client.publish(mqttCurrent+"L1/value",current)
+                        pubret=client.publish(mqttCurrent+"L1/unit","A")
                     elif(obisStr=="1-0:51.7.0.255"):
-                        print("Ström L2: {0}".format(item/100))
+                        current=item/100
+                        print("Ström L2: {0} A".format(current))
+                        pubret=client.publish(mqttCurrent+"L2/value",current)
+                        pubret=client.publish(mqttCurrent+"L2/unit","A")
                     elif(obisStr=="1-0:71.7.0.255"):
-                        print("Ström L3: {0}".format(item/100))
+                        current=item/100
+                        print("Ström L3: {0} A".format(current))
+                        pubret=client.publish(mqttCurrent+"L3/value",current)
+                        pubret=client.publish(mqttCurrent+"L3/unit","A")
                     elif(obisStr=="1-0:32.7.0.255"):
-                        print("Spänning L1: {0}".format(item/10))
+                        voltage=item/10
+                        print("Spänning L1: {0} V".format(voltage))
+                        pubret=client.publish(mqttVoltage+"L1/value",voltage)
+                        pubret=client.publish(mqttVoltage+"L1/unit","V")
                     elif(obisStr=="1-0:52.7.0.255"):
-                        print("Spänning L2: {0}".format(item/10))
+                        voltage=item/10
+                        print("Spänning L2: {0} V".format(voltage))
+                        pubret=client.publish(mqttVoltage+"L2/value",voltage)
+                        pubret=client.publish(mqttVoltage+"L2/unit","V")
                     elif(obisStr=="1-0:72.7.0.255"):
-                        print("Spänning L3: {0}".format(item/10))
+                        voltage=item/10
+                        print("Spänning L3: {0} V".format(voltage))
+                        pubret=client.publish(mqttVoltage+"L3/value",voltage)
+                        pubret=client.publish(mqttVoltage+"L3/unit","V")
                     elif(obisStr=="1-0:1.8.0.255"):
-                        print("Total meter: {0}".format(item))
-                        
-                    
-                obisStr=''        
-                obis = Obis.from_bytes(item)
-                obisStr=obis.to_string()
+                        totalkwh=item/1000
+                        print("Total kWh: {0}".format(totalkwh))
+                        pubret=client.publish(mqttEnergy+"Active/Positive/value",totalkwh)
+                        pubret=client.publish(mqttEnergy+"Active/Positive/unit","kWh")
+                    elif(obisStr=="1-0:2.8.0.255"):
+                        totalkwh=item/1000
+                        print("Total exported kWh: {0}".format(totalkwh))
+                        pubret=client.publish(mqttEnergy+"Active/Negative/value",totalkwh)
+                        pubret=client.publish(mqttEnergy+"Active/Negative/unit","kWh")
+                    elif(obisStr=="1-0:3.8.0.255"):
+                        totalkvarh=item/1000
+                        print("Total reactive kVArh: {0}".format(totalkvarh))
+                        pubret=client.publish(mqttEnergy+"Reactive/Positive/value",totalkvarh)
+                        pubret=client.publish(mqttEnergy+"Reactive/Positive/unit","kVArh")
+                    elif(obisStr=="1-0:4.8.0.255"):
+                        totalkvarh=item/1000
+                        print("Total exported reactive kVArh: {0}".format(totalkvarh))
+                        pubret=client.publish(mqttEnergy+"Reactive/Negative/value",totalkvarh)
+                        pubret=client.publish(mqttEnergy+"Reactive/Negative/unit","kVArh")
+                    obisStr=''        
+                else:    
+                    obis = Obis.from_bytes(item)
+                    obisStr=obis.to_string()
+            
             except Exception as e:
                 print(e)
                 obisErrPos=e.args[0].find("Not enough data to parse OBIS")
