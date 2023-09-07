@@ -1,7 +1,7 @@
 import sys
 import paho.mqtt.client as paho
 import sys
-sys.path.append(r'C:\Dev\dlms-cosem')
+sys.path.append(r'C:\Lab\dlms-cosem')
 from dlms_cosem.protocol import xdlms
 from dlms_cosem.hdlc import frames
 from dlms_cosem.utils import parse_as_dlms_data
@@ -32,8 +32,28 @@ hdlc_data_hex3 = (
 # 11d -> framesize
 # "7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff06000000a009060100020700ff060000000009060100030700ff060000000009060100040700ff0600000118090601001f0700ff06000001a909060100330700ff060000022c09060100470700ff060000028f09060100200700ff060000092209060100340700ff060000092609060100480700ff060000092d09060000010000ff090c07e708140706251effffc40009060100010800ff06010567e509060100020800ff060000000009060100030800ff060000170309060100040800ff06003b40a3898a7e"
 # "7ea11d01000101b8afaee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff060000009d09060100020700ff060000000009060100030700ff060000000009060100040700ff0600000110090601001f0700ff060000018109060100330700ff060000023a09060100470700ff060000029309060100200700ff060000091d09060100340700ff060000091b09060100480700ff060000093009060000010000ff090c07e7081407083a00ffffc40009060100010800ff06010569b309060100020800ff060000000009060100030800ff060000170309060100040800ff06003b434052727e"
+#hex2=Ojämnt från mätare
 hdlc_data_hex2 = (
-    "7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff060000024a09060100020700ff060000000009060100030700ff060000000009060100040700ff0600000109090601001f0700ff060000012d09060100330700ff060000056909060100470700ff06000005ef09060100200700ff060000090f09060100340700ff060000090709060100480700ff060000092009060000010000ff090c07e7081b0715202dffffc40009060100010800ff060107d8d009060100020800ff060000000009060100030800ff060000171e09060100040800ff06003bfaf201477e"
+    "7ea11d01000110b0aee6e7000f40000000000224"
+    "09060100000281ff09074b464d5f303031"
+    "09060000600100ff091037333430313537303330373332303434"
+    "09060000600107ff09074d413330344834"
+    "09060100010700ff06000002c3"
+    "09060100020700ff0600000000"
+    "09060100030700ff0600000000"
+    "09060100040700ff06000000d5"
+    "090601001f0700ff060000087e"
+    "09060100330700ff0600000367"
+    "09060100470700ff06000002a9"
+    "09060100200700ff06000008f5"
+    "09060100340700ff06000008fe"
+    "09060100480700ff060000090f"
+    "09060000010000ff090c07e7"
+    "09060316381effffc400"
+    "09060100010800ff06010a8351"
+    "09060100020800ff0600000000"
+    "09060100030800ff060000174e"
+    "09060100040800ff06003cdc184b257e"
 )
 
 hdlc_data_hex_kode = (
@@ -48,6 +68,83 @@ hdlc_data_hex_kode = (
     "0700FF060000006D09060101200700FF1200EB09060101"
     "340700FF1200EB09060101480700FF1200EB83777E"
 )
+payload=bytes.fromhex(hdlc_data_hex2)
+msglen=int.from_bytes(payload[1:3],"big")-40960
+lenDiff=msglen-len(payload)
+ui = frames.UnnumberedInformationFrame.from_bytes(payload)
+dn = xdlms.DataNotification.from_bytes(
+    ui.payload[4:]
+)  # The first 3 or 4 bytes should be ignored.
+result = parse_as_dlms_data(dn.body)
+
+obisStr=""
+# rest is data
+for item in result:
+    try:
+        if(len(obisStr)>0):
+            print(obisStr, end="   \t")
+            if(obisStr=="0-0:96.1.0.255"):
+                meterId=item.decode()
+                print("Meter ID:\t{0}".format(meterId))
+            elif(obisStr=="0-0:1.0.0.255"):
+                clock,status=datetime_from_bytes(item)
+                strClock=clock.strftime("%Y-%m-%d %X")
+                print(strClock)
+            elif(obisStr=="1-0:0.2.129.255"):
+                meterName=item
+                print("Meter name:\t{0}".format(meterName.decode()))
+            elif(obisStr=="1-0:1.7.0.255"):
+                pActivePower=item
+                print("Active power+:\t{0} ".format(pActivePower))
+            elif(obisStr=="1-0:2.7.0.255"):
+                mActivePower=item
+                print("Active power-:\t{0} ".format(mActivePower))
+            elif(obisStr=="1-0:3.7.0.255"):
+                print("ReActive power+")
+            elif(obisStr=="1-0:4.7.0.255"):
+                print("ReActive power-")
+            elif(obisStr=="1-0:31.7.0.255"):
+                current=item/100
+                print("Ström L1: {0} A".format(current))
+            elif(obisStr=="1-0:51.7.0.255"):
+                current=item/100
+                print("Ström L2: {0} A".format(current))
+            elif(obisStr=="1-0:71.7.0.255"):
+                current=item/100
+                print("Ström L3: {0} A".format(current))
+            elif(obisStr=="1-0:32.7.0.255"):
+                voltage=item/10
+                print("Spänning L1: {0} V".format(voltage))
+            elif(obisStr=="1-0:52.7.0.255"):
+                voltage=item/10
+                print("Spänning L2: {0} V".format(voltage))
+            elif(obisStr=="1-0:72.7.0.255"):
+                voltage=item/10
+                print("Spänning L3: {0} V".format(voltage))
+            elif(obisStr=="1-0:1.8.0.255"):
+                totalkwh=item/1000
+                print("Total kWh: {0}".format(totalkwh))
+            elif(obisStr=="1-0:2.8.0.255"):
+                totalkwh=item/1000
+                print("Total exported kWh: {0}".format(totalkwh))
+            elif(obisStr=="1-0:3.8.0.255"):
+                totalkvarh=item/1000
+                print("Total reactive kVArh: {0}".format(totalkvarh))
+            elif(obisStr=="1-0:4.8.0.255"):
+                totalkvarh=item/1000
+                print("Total exported reactive kVArh: {0}".format(totalkvarh))
+            obisStr=''        
+        else:    
+            obis = Obis.from_bytes(item)
+            obisStr=obis.to_string()
+    
+    except Exception as e:
+        print(e)
+        obisErrPos=e.args[0].find("Not enough data to parse OBIS")
+        if(obisErrPos==0):
+            print(item)
+
+sys.exit(0)
 
 def handle_msg(client, userdata, msg):
     
@@ -93,25 +190,4 @@ crc=frames.CRCCCITT()
 tst=crc.calculate_for(bytes.fromhex(    "a121010001b8afaee6e700"
     "0f4000000000011b022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff06000000a009060100020700ff060000000009060100030700ff060000000009060100040700ff0600000118090601001f0700ff06000001a909060100330700ff060000022c09060100470700ff060000028f09060100200700ff060000092209060100340700ff060000092609060100480700ff060000092d09060000010000ff090c07e708140706251effffc40009060100010800ff06010567e509060100020800ff060000000009060100030800ff060000170309060100040800ff06003b40a3"
 ))
-
-ui = frames.UnnumberedInformationFrame.from_bytes(bytes.fromhex(hdlc_data_hex2))
-dn = xdlms.DataNotification.from_bytes(
-    ui.payload[3:]
-)  # The first 3 bytes should be ignored.
-result = parse_as_dlms_data(dn.body)
-
-# First is date
-date_row = result.pop(0)
-clock_obis = Obis.from_bytes(date_row[0])
-clock, stats = datetime_from_bytes(date_row[1])
-print(f"Clock object: {clock_obis.to_string()}, datetime={clock}")
-
-# rest is data
-for item in result:
-    obis = Obis.from_bytes(item[0])
-    value = item[1]
-    print(f"{obis.to_string()}={value}")
-
-
-
 
