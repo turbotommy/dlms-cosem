@@ -1,7 +1,7 @@
 import pprint
 import paho.mqtt.client as paho
 import sys
-sys.path.append(r'C:\Lab\dlms-cosem')
+sys.path.append(r'C:\Dev\dlms-cosem')
 from queue import Queue
 from dlms_cosem.cosem import Obis
 from dlms_cosem.hdlc import frames
@@ -58,18 +58,18 @@ def handle_msg(client, userdata, msg):
         #1 char diff means we only need to add a flag
         payload+=b'\x7e'
         parse=True
-    elif(lenDiff==1):
+    elif(lenDiff==1 or lenDiff==-2):
         #Do not add flag, try to parse
         #7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff060000009709060100020700ff060000000009060100030700ff060000000009060100040700ff06000000bf090601001f0700ff060000014f09060100330700ff06000001da09060100470700ff060000026f09060100200700ff06000008f009060100340700ff06000008fb09060100480700ff060000090309060000010000ff090c07e70906030f060fffffc40009060100010800ff06010a704709060100020800ff060000000009060100030800ff060000174d09060100040800ff06003cd47e
         parse=True
-    elif(lenDiff>10):
+    elif(lenDiff>1):
         #Wait for next mqtt msg
         prevPayload=payload
     else:
         #-2
         #7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff06000002c309060100020700ff060000000009060100030700ff060000000009060100040700ff06000000d5090601001f0700ff060000087e09
         #060100330700ff060000036709060100470700ff06000002a909060100200700ff06000008f509060100340700ff06000008fe09060100480700ff060000090f09060000010000ff090c07e709060316381effffc40009060100010800ff06010a835109060100020800ff060000000009060100030800ff060000174e09060100040800ff06003cdc184b257e
-        print(msglen)
+        print("Fel")
     
     if(parse):
         prevPayload=b''
@@ -116,8 +116,9 @@ try:
                         print(strClock)
                         pubret=client.publish(mqttPrefix+"Time/value",strClock)
                     elif(obisStr=="1-0:1.7.0.255"):
-                        print("Active power+")
-                        pubret=client.publish(mqttActive+"Positive/value",item)
+                        pActivePower=item
+                        print("Active power+:\t{0} ".format(pActivePower))
+                        pubret=client.publish(mqttActive+"Positive/value",pActivePower)
                         pubret=client.publish(mqttActive+"Positive/unit","W")
                     elif(obisStr=="1-0:2.7.0.255"):
                         print("Active power-")
@@ -132,17 +133,17 @@ try:
                         pubret=client.publish(mqttReactive+"Negative/value",item)
                         pubret=client.publish(mqttReactive+"Negative/unit","W")
                     elif(obisStr=="1-0:31.7.0.255"):
-                        current=item/100
+                        current=item/1000
                         print("Ström L1: {0} A".format(current))
                         pubret=client.publish(mqttCurrent+"L1/value",current)
                         pubret=client.publish(mqttCurrent+"L1/unit","A")
                     elif(obisStr=="1-0:51.7.0.255"):
-                        current=item/100
+                        current=item/1000
                         print("Ström L2: {0} A".format(current))
                         pubret=client.publish(mqttCurrent+"L2/value",current)
                         pubret=client.publish(mqttCurrent+"L2/unit","A")
                     elif(obisStr=="1-0:71.7.0.255"):
-                        current=item/100
+                        current=item/1000
                         print("Ström L3: {0} A".format(current))
                         pubret=client.publish(mqttCurrent+"L3/value",current)
                         pubret=client.publish(mqttCurrent+"L3/unit","A")
