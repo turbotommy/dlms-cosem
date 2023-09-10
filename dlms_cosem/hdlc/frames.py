@@ -504,7 +504,7 @@ class UnnumberedInformationFrame(BaseHdlcFrame):
         if hcs != frame.hcs:
             #raise hdlc_exceptions.HdlcParsingError(
             print(
-                f"HCS is not correct Calculated: {frame.hcs!r}, in data: {hcs!r}"
+                f"HCS is not correct Calculated: {frame.hcs!r}, in data: {hcs!r}, src: {frame.header_content!r}"
             )
 
         if fcs != frame.fcs:
