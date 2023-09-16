@@ -201,6 +201,9 @@ class AXdrDecoder:
                         bytes(self.get_bytes(data_class.LENGTH))
                     ).to_python()
                 )
+                if(len(parsed_data)>2000):
+                    #This is looping - abort
+                    raise Exception("Unable to decode_sequence due to loop")
                 continue
 
             # TODO: should have a function to get variable intefer incase it is longer

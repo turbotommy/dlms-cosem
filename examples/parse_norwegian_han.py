@@ -57,7 +57,7 @@ def handle_msg(client, userdata, msg):
             parse=True
         elif(lenDiff>1):
             #Wait for next mqtt msg
-            print("Uncomplete msg")
+            print("Incomplete msg")
             skipLen=230
             if(lenDiff<skipLen):
                 prevPayload=payload
@@ -87,13 +87,15 @@ def handle_msg(client, userdata, msg):
             fcs = crc.calculate_for(fcsdata)
             payload = payload[:-3] + fcs + payload[-1:]
             prevPayload=b''
-            ui = frames.UnnumberedInformationFrame.from_bytes(payload)
-            dn = xdlms.DataNotification.from_bytes(
-                ui.payload[4:]
-            )  # The first 3 bytes should be ignored. Even 4 for KAIFA
+            try:
+                ui = frames.UnnumberedInformationFrame.from_bytes(payload)
+                dn = xdlms.DataNotification.from_bytes(ui.payload[4:])  # The first 3 bytes should be ignored. Even 4 for KAIFA
 
-            result = parse_as_dlms_data(dn.body)
-            q.put(result)
+                result = parse_as_dlms_data(dn.body)
+                q.put(result)
+            except Exception as e:
+                print("Parsing error")
+                print(e)
     else:
         #Get info and repost
         print(msg.topic)
