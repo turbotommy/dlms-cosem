@@ -104,15 +104,18 @@ def handle_msg(client, userdata, msg):
             jsonConfig: dict=json.loads(msg.payload)
             msgTime=jsonConfig['last_reset']
             year=msgTime[0:4]
-            exclude=msg.topic.find("KAIFA-Meter-ID")
+            #exclude=msg.topic.find("KAIFA-Meter-ID")
             if(year=="1970"):
                 #Change original message
                 now=datetime.now()
                 msgTime=now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-                tst=msg.payload.replace(b'malarenergi/KAIFA', b'misteln13power/KAIFA')
-                tst=tst.replace(b'1970-01-01T00:00:00+00:00',bytes(msgTime,"utf8"))
-                tst=tst.replace(b'"name":"KAIFA/',b'"name": "')
-                msg.payload=tst
+                changedMsg=msg.payload.replace(b'malarenergi/KAIFA', b'misteln13power/KAIFA')
+                changedMsg=changedMsg.replace(b'1970-01-01T00:00:00+00:00',bytes(msgTime,"utf8"))
+                changedMsg=changedMsg.replace(b'"name":"KAIFA/',b'"name": "/')
+                changeMeasure=msg.topic.find("KAIFA-Meter-Manufacturer")+msg.topic.find("KAIFA-Meter-ID")
+                if(changeMeasure>-1):
+                    changedMsg=changedMsg.replace(b'measurement',b'None')
+                msg.payload=changedMsg
                 q.put(msg)
 
         except Exception as e:
@@ -178,17 +181,17 @@ try:
                         elif(obisStr=="1-0:2.7.0.255"):
                             mActivePower=item/1000
                             print("Active power-:\t{0} ".format(mActivePower))
-                            pubret=client.publish(mqttActive+"Negative/value",item)
+                            pubret=client.publish(mqttActive+"Negative/value",mActivePower)
                             pubret=client.publish(mqttActive+"Negative/unit","kW")
                         elif(obisStr=="1-0:3.7.0.255"):
                             pReactivePower=item/1000
                             print("ReActive power+:\t{0} ".format(pReactivePower))
-                            pubret=client.publish(mqttReactive+"Positive/value",item)
+                            pubret=client.publish(mqttReactive+"Positive/value",pReactivePower)
                             pubret=client.publish(mqttReactive+"Positive/unit","kW")
                         elif(obisStr=="1-0:4.7.0.255"):
                             mReactivePower=item/1000
                             print("ReActive power-:\t{0} ".format(mReactivePower))
-                            pubret=client.publish(mqttReactive+"Negative/value",item)
+                            pubret=client.publish(mqttReactive+"Negative/value",mReactivePower)
                             pubret=client.publish(mqttReactive+"Negative/unit","kW")
                         elif(obisStr=="1-0:31.7.0.255"):
                             current=item/1000
