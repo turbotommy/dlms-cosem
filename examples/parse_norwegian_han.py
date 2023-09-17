@@ -100,18 +100,25 @@ def handle_msg(client, userdata, msg):
         #Get info and repost
         print(msg.topic)
         #print(type(msg.payload))
-        jsonConfig: dict=json.loads(msg.payload)
-        msgTime=jsonConfig['last_reset']
-        year=msgTime[0:4]
-        exclude=msg.topic.find("KAIFA-Meter-ID")
-        if(year=="1970" and exclude==-1):
-            #Change original message
-            now=datetime.now()
-            msgTime=now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-            tst=msg.payload.replace(b'malarenergi/KAIFA', b'misteln13power/KAIFA').replace(b'1970-01-01T00:00:00+00:00',bytes(msgTime,"utf8"))
-            msg.payload=tst
-            q.put(msg)
+        try:
+            jsonConfig: dict=json.loads(msg.payload)
+            msgTime=jsonConfig['last_reset']
+            year=msgTime[0:4]
+            exclude=msg.topic.find("KAIFA-Meter-ID")
+            if(year=="1970"):
+                #Change original message
+                now=datetime.now()
+                msgTime=now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+                tst=msg.payload.replace(b'malarenergi/KAIFA', b'misteln13power/KAIFA')
+                tst=tst.replace(b'1970-01-01T00:00:00+00:00',bytes(msgTime,"utf8"))
+                tst=tst.replace(b'"name":"KAIFA/',b'"name": "')
+                msg.payload=tst
+                q.put(msg)
 
+        except Exception as e:
+            print(msg.payload)
+            print(e)
+            print("Cannot interpret json")
 #    time.sleep(1)
     
 #    for b in msg.payload:
