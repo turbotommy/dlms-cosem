@@ -65,14 +65,13 @@ def handle_msg(client, userdata, msg):
                 print("Skipping "+str(payload)+", too short")
         elif(lenDiff==0):
             #Add char and flag
-            print("No lendiff")
+            print("No lendiff, adding one")
+            payload+=b'\x10'
             parse=True
         else:
             #7ea11d01000110b0aee6e7000f4000000000022409060100000281ff09074b464d5f30303109060000600100ff09103733343031353730333037333230343409060000600107ff09074d41333034483409060100010700ff06000000ec09060100020700ff060000000009060100030700ff060000000009060100040700ff06000000a1090601001f0700ff060000004609060100330700ff060000027d09060100470700ff06000002ac09060100200700ff060000091409060100340700ff060000090809060100480700ff060000091709060000010000ff090c07e7090805070f0fffffc40009060100010800ff06010ab04d09060100020800ff060000000009060100030800ff060000175309060100040800ff06003cf94c69
             print("Fel: diff={0} chars".format(lenDiff))
             parse=True
-
-        
         if(parse):
             lastChar=payload[-1:]
             if(lastChar!=b'\x7e'):
@@ -163,15 +162,15 @@ try:
                             pubret=client.publish(mqttPrefix+"Time/value",strClock,1,True)
                         elif(obisStr=="0-0:96.1.0.255"):
                             meterID=item.decode('utf-8')
-                            print("Active power+:\t{0} ".format(meterID))
+                            #print("Active power+:\t{0} ".format(meterID))
                             pubret=client.publish(mqttMeter+"ID/value",meterID)
                         elif(obisStr=="0-0:96.1.7.255"):
                             meterType=item.decode('utf-8')
-                            print("Active power+:\t{0} ".format(meterType))
+                            #print("Active power+:\t{0} ".format(meterType))
                             pubret=client.publish(mqttMeter+"Type/value",meterType)
                         elif(obisStr=="1-0:0.2.129.255"):
                             manufacturer=item.decode('utf-8')
-                            print("Active power+:\t{0} ".format(manufacturer))
+                            #print("Active power+:\t{0} ".format(manufacturer))
                             pubret=client.publish(mqttMeter+"Manufacturer/value",manufacturer)
                         elif(obisStr=="1-0:1.7.0.255"):
                             pActivePower=item/1000
@@ -180,14 +179,14 @@ try:
                             pubret=client.publish(mqttActive+"Positive/unit","kW")
                         elif(obisStr=="1-0:2.7.0.255"):
                             mActivePower=item/1000
-                            print("Active power-:\t{0} ".format(mActivePower))
-                            pubret=client.publish(mqttActive+"Negative/value",mActivePower)
-                            pubret=client.publish(mqttActive+"Negative/unit","kW")
+                            #print("Active power-:\t{0} ".format(mActivePower))
+                            #pubret=client.publish(mqttActive+"Negative/value",mActivePower)
+                            #pubret=client.publish(mqttActive+"Negative/unit","kW")
                         elif(obisStr=="1-0:3.7.0.255"):
                             pReactivePower=item/1000
-                            print("ReActive power+:\t{0} ".format(pReactivePower))
-                            pubret=client.publish(mqttReactive+"Positive/value",pReactivePower)
-                            pubret=client.publish(mqttReactive+"Positive/unit","kW")
+                            #print("ReActive power+:\t{0} ".format(pReactivePower))
+                            #pubret=client.publish(mqttReactive+"Positive/value",pReactivePower)
+                            #pubret=client.publish(mqttReactive+"Positive/unit","kW")
                         elif(obisStr=="1-0:4.7.0.255"):
                             mReactivePower=item/1000
                             print("ReActive power-:\t{0} ".format(mReactivePower))
